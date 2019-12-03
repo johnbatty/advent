@@ -1,7 +1,6 @@
 use failure::Error;
 use std::fs;
 use std::collections::HashSet;
-use std::cmp::min;
 
 fn lines_to_points(lines: &str) -> HashSet<(i32, i32)> {
     let mut x = 0;
@@ -30,21 +29,15 @@ fn intersect_wires(layout: &str) -> i32 {
         .map(lines_to_points)
         .collect();
     
-    let mut min_distance = i32::max_value();
-    for (x, y) in wire_points[0].intersection(&wire_points[1]) {
-        println!("Intersection x:{} y:{}", x, y);
-        let distance = x.abs() + y.abs();
-        println!("distance:{}", distance);
-        min_distance = min(min_distance, distance);
-    }
-
-    min_distance
+    wire_points[0].intersection(&wire_points[1])
+        .map(|(x, y)| x.abs() + y.abs())
+        .min()
+        .unwrap()
 }
 
 fn main() -> Result<(), Error> {
     let min_distance = intersect_wires(&fs::read_to_string("data.txt")?);
     println!("min_distance: {}", min_distance);
-
     Ok(())
 }
 

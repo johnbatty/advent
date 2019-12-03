@@ -30,25 +30,17 @@ fn lines_to_points(lines: &str) -> HashMap<(i32, i32), i32> {
 fn intersect_wires(layout: &str) -> i32 {
     let wire_steps: Vec<HashMap<(i32, i32), i32>> = layout.lines().map(lines_to_points).collect();
 
-    let mut min_sum_steps = i32::max_value();
-
-    for (x, y) in wire_steps[0].keys() {
-        if wire_steps[1].contains_key(&(*x, *y)) {
-            let sum_steps =
-                wire_steps[0].get(&(*x, *y)).unwrap() + wire_steps[1].get(&(*x, *y)).unwrap();
-            if sum_steps < min_sum_steps {
-                min_sum_steps = sum_steps;
-            }
-        }
-    }
-
-    min_sum_steps
+    wire_steps[0]
+        .keys()
+        .filter(|(x, y)| wire_steps[1].contains_key(&(*x, *y)))
+        .map(|(x, y)| wire_steps[0].get(&(*x, *y)).unwrap() + wire_steps[1].get(&(*x, *y)).unwrap())
+        .min()
+        .unwrap()
 }
 
 fn main() -> Result<(), Error> {
     let distance = intersect_wires(&fs::read_to_string("data.txt")?);
     println!("distance: {}", distance);
-
     Ok(())
 }
 
