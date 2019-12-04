@@ -1,46 +1,70 @@
 use failure::Error;
-use std::collections::HashMap;
+use itertools::Itertools;
+use std::collections::HashSet;
 use std::fs;
+use std::hash::{Hash, Hasher};
+use std::iter::repeat;
 
-fn lines_to_points(lines: &str) -> HashMap<(i32, i32), i32> {
-    let mut x = 0;
-    let mut y = 0;
-    let mut step_count = 0;
-    let mut steps = HashMap::new();
-    for step in lines.split(',') {
-        let dir = step[..1].to_string();
-        let distance = step[1..].parse::<i32>().unwrap();
-        for _ in 0..distance {
-            match dir.as_str() {
-                "L" => x -= 1,
-                "R" => x += 1,
-                "U" => y += 1,
-                "D" => y -= 1,
-                _ => panic!("Unexpected direction: {}", step),
-            }
-            step_count += 1;
-            if !steps.contains_key(&(x, y)) {
-                steps.insert((x, y), step_count);
-            }
-        }
+#[derive(Eq, Clone, Copy)]
+struct WirePoint {
+    x: i32,
+    y: i32,
+    s: i32, // Step count
+}
+
+// Deliberately ignore the `s` field when calculating hash
+impl Hash for WirePoint {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
     }
-    steps
+}
+
+// Deliberately ignore the `s` field when testing equality
+impl PartialEq for WirePoint {
+    fn eq(&self, other: &Self) -> bool {
+        (self.x == other.x) && (self.y == other.y)
+    }
+}
+
+fn lines_to_points(lines: &str) -> HashSet<WirePoint> {
+    lines
+        .split(',')
+        .map(|s| s.split_at(1))
+        .flat_map(|(dir, len)| {
+            repeat(match dir {
+                "L" => (-1, 0),
+                "R" => (1, 0),
+                "U" => (0, 1),
+                "D" => (0, -1),
+                _ => panic!("Invalid direction: {}", dir),
+            })
+            .take(len.parse::<usize>().unwrap())
+        })
+        .scan(WirePoint { x: 0, y: 0, s: 0 }, |coord, step| {
+            coord.x += step.0;
+            coord.y += step.1;
+            coord.s += 1;
+            Some(*coord)
+        })
+        .unique()
+        .collect()
 }
 
 fn intersect_wires(layout: &str) -> i32 {
-    let wire_steps: Vec<HashMap<(i32, i32), i32>> = layout.lines().map(lines_to_points).collect();
+    let wire_points: Vec<HashSet<WirePoint>> = layout.lines().map(lines_to_points).collect();
 
-    wire_steps[0]
-        .keys()
-        .filter(|(x, y)| wire_steps[1].contains_key(&(*x, *y)))
-        .map(|(x, y)| wire_steps[0].get(&(*x, *y)).unwrap() + wire_steps[1].get(&(*x, *y)).unwrap())
+    wire_points[0]
+        .iter()
+        .filter(|wp| wire_points[1].contains(&wp))
+        .map(|wp| wire_points[0].get(&wp).unwrap().s + wire_points[1].get(&wp).unwrap().s)
         .min()
         .unwrap()
 }
 
 fn main() -> Result<(), Error> {
-    let distance = intersect_wires(&fs::read_to_string("data.txt")?);
-    println!("distance: {}", distance);
+    let wire_data = fs::read_to_string("data.txt")?;
+    println!("distance: {}", intersect_wires(&wire_data));
     Ok(())
 }
 
