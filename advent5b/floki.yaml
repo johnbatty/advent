@@ -1,0 +1,3 @@
+image: art-docker.metaswitch.com/images.core/rust-dev/centos:6.16.0
+forward_ssh_agent: true
+shell: bash
