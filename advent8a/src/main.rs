@@ -6,8 +6,8 @@ use std::fs;
 const IMAGE_WIDTH: i32 = 25;
 const IMAGE_HEIGHT: i32 = 6;
 
-fn main() -> Result<(), Error> {
-    let freq_map = fs::read_to_string("data.txt")?
+fn image_check(image_data: &str) -> i32 {
+    let freq_map = image_data
         .chars()
         .chunks((IMAGE_WIDTH * IMAGE_HEIGHT) as usize)
         .into_iter()
@@ -20,10 +20,13 @@ fn main() -> Result<(), Error> {
         .min_by_key(|freq_map| freq_map[&'0'])
         .unwrap();
 
-    let x = freq_map[&'1'] * freq_map[&'2'];
+    freq_map[&'1'] * freq_map[&'2']
+}
 
-    println!("{}", x);
-
+fn main() -> Result<(), Error> {
+    let image_data = fs::read_to_string("data.txt")?;
+    let v = image_check(&image_data);
+    println!("{}", v);
     Ok(())
 }
 
@@ -31,6 +34,6 @@ fn main() -> Result<(), Error> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_param_mode() {}
+    // #[test]
+    // fn test() {}
 }
