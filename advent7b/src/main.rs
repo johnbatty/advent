@@ -109,7 +109,6 @@ impl Computer {
     }
 
     fn write_output(&mut self, v: i32) {
-        println!("write_output {}", v);
         self.last_output = v;
         self.output_queue.push_back(v);
     }
@@ -123,14 +122,11 @@ impl Computer {
 
         match inst.opcode() {
             Opcode::Input => {
-                match self.read_input() {
-                    Some(input) => {
-                        let src = input;
-                        let dst = self.raw_param(1) as usize;
-                        self.mem[dst] = src as MemCell;
-                        self.ip += 2;   
-                    },
-                    None => {},
+                if let Some(input) = self.read_input() {
+                    let src = input;
+                    let dst = self.raw_param(1) as usize;
+                    self.mem[dst] = src as MemCell;
+                    self.ip += 2;   
                 }
             }
             Opcode::Output => {
@@ -189,12 +185,6 @@ impl Computer {
             }
         }
     }
-
-    fn exec(&mut self) {
-        while !self.halted {
-            self.exec_instruction()
-        }
-    }
 }
 
 fn load_program(prog: &str) -> Vec<MemCell> {
@@ -203,14 +193,11 @@ fn load_program(prog: &str) -> Vec<MemCell> {
         .collect()
 }
 
-// 5 amplifiers.
-fn run_thruster_amps(program: &Vec<MemCell>, phases: &Vec<i32>) -> i32 {
-    let mut output_signal = 0;
-
+fn run_thruster_amps(program: &[MemCell], phases: &[i32]) -> i32 {
     let mut computers: Vec<Computer> = phases
         .iter()
         .map(|phase| {
-            let mut c = Computer::new(program.clone());
+            let mut c = Computer::new(program.into());
             c.inject_input(*phase);
             c
         })
@@ -221,12 +208,8 @@ fn run_thruster_amps(program: &Vec<MemCell>, phases: &Vec<i32>) -> i32 {
     while computers_are_running {
         computers_are_running = false;
         for computer in &mut computers {
-            match output {
-                Some(v) => {
-                    println!("Inject {:?}", &v);
-                    computer.inject_input(v);
-                }
-                None => {}
+            if let Some(v) = output {
+                computer.inject_input(v);
             }
             computer.exec_instruction();
             output = computer.read_output();
@@ -236,31 +219,14 @@ fn run_thruster_amps(program: &Vec<MemCell>, phases: &Vec<i32>) -> i32 {
         }
     }
 
-
-
-    // for phase in phases {
-    //     let input_signal = output_signal;
-    //     let input_queue = vec![*phase, input_signal];
-    //     println!("input_queue: {:?}", &input_queue);
-    //     let mut computer = Computer::new(program.clone());
-    //     assert_eq!(computer.output_queue.len(), 1);
-    //     output_signal = computer.output_queue[0];
-    //     println!("output_signal:{}", output_signal);
-    // }
- 
-    // computer.exec();
-
-
-    computers[4].last_output
+    computers[computers.len() - 1].last_output
 }
 
-fn maximise_thruster_power(program: &Vec<MemCell>) -> (i32, Vec<i32>) {
+fn maximise_thruster_power(program: &[MemCell]) -> (i32, Vec<i32>) {
     let mut max_power = 0;
     let mut best_phases = vec![];
     for phases in (5..=9).permutations(NUM_AMPS as usize) {
-        println!("{:?}", phases);
         let output = run_thruster_amps(&program, &phases);
-        println!("output: {}", output);
         if output > max_power {
             max_power = output;
             best_phases = phases.clone();
